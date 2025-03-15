@@ -1,7 +1,7 @@
 import datetime
 from rest_framework import serializers
 from rest_framework import serializers
-
+from rest_framework.exceptions import ValidationError
 from api.serializers.category import ChurchSerializer, YouthGroupSerializer
 from backend import settings
 from .models import IDCard, User, Church, YouthGroup
@@ -46,12 +46,13 @@ class UserSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 'gender','image', 'unit', 'church',"card","role",'youth_council_group','password']
+        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 'gender','image', 'unit', 'church',"card","role",'youth_council_group','password','created_at']
         extra_kwargs = {'password': {'write_only': True}}
 
     def get_card(self,obj:User):
+        request = self.context.get('request')
         id_card , created = IDCard.objects.get_or_create(user=obj)
-        return IDCardSerializer(id_card).data
+        return IDCardSerializer(id_card,context={'request': request}).data
 
 
     def get_role(self,obj:User):
@@ -121,3 +122,17 @@ class RegisterSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Youth group (Hi-Y or Y-Elite) is required for Youth Council.")
 
         return data
+
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+    confirm_new_password = serializers.CharField(required=True)
+
+    def validate(self, data):
+        # Check that new passwords match
+        if data['new_password'] != data['confirm_new_password']:
+            raise ValidationError("New passwords do not match.")
+        return data
+    

@@ -10,7 +10,9 @@ urlpatterns = [
 
 
     path('account/', account_views.ProfileView.as_view(), name='ProfileView'),
-
+    path('account/signature/', account_views.CardSignatureView.as_view(), name='CardSignatureView'),
+    path('account/picture/', account_views.ProfileImageView.as_view(), name='ProfileImageView'),
+    path('account/change-password/', account_views.PasswordChangeView.as_view(), name='password-change'),
     path('categories', CategoryListView.as_view(), name='CategoryListView'),
     path('churches', ChurchListView.as_view(), name='ChurchListView'),
     path('youth-groups', YouthGroupListView.as_view(), name='YouthGroupListView'),
