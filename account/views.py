@@ -24,6 +24,10 @@ class LoginUserView(generics.GenericAPIView):
         password = serializer.validated_data['password']
         user = authenticate(request, email=email, password=password)
         if user is not None:
+            if not user.is_active:
+                return bad_request_response(
+                    message="Your account has been deactivated"
+                )
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             response = {
