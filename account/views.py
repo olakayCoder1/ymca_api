@@ -10,7 +10,7 @@ from account.models import IDCard, User
 from .serializers import LoginSerializer, PasswordChangeSerializer, RegisterSerializer, UserSerializer
 from api.utils.response.response_format import success_response, bad_request_response
 
-
+# 
 
 
 class LoginUserView(generics.GenericAPIView):

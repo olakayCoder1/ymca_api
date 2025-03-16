@@ -46,7 +46,7 @@ class UserSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 'gender','image', 'unit', 'church',"card","role",'youth_council_group','password','created_at']
+        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 'gender','image', 'unit', 'church',"card","role",'youth_council_group','password','created_at','is_active']
         extra_kwargs = {'password': {'write_only': True}}
 
     def get_card(self,obj:User):
@@ -71,7 +71,7 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 'gender', 'unit', 'church', 'youth_council_group','password']
+        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 'gender', 'unit', 'church', 'youth_council_group','password',]
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
