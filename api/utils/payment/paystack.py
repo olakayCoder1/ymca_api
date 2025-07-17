@@ -69,6 +69,55 @@ class Paystack:
 
         except Exception as e:
             return bad_request_response(message=str(e))
+        
+
+    
+    @staticmethod
+    def charge_user_for_donation(request,amount, name, email=None):
+        try:
+            amount = float(amount) * 100  # amount (in kobo)
+            redirect_url = f"{request.data.get('redirect_url')}"
+
+            print(amount)
+            print(amount)
+            print(amount)
+            metadata = {
+                "payment_mode": 'donation',
+                "name": name,
+                "email": email,
+                "description": "Donation"
+            }
+
+            # Prepare request payload for Paystack
+            data = {
+                "email": email,
+                "amount": amount, 
+                "currency": "NGN",
+                "callback_url": redirect_url,
+                "metadata": metadata,
+            }
+
+            response = requests.post(
+                "https://api.paystack.co/transaction/initialize",
+                json=data,
+                headers=Paystack.get_header()
+            )
+            print(response.text) 
+            if response.ok:
+                response_data = response.json()
+                if response.status_code == 200 and response_data["status"] == True:
+                    print(response_data['data'])
+                    payment_url = response_data['data']['authorization_url']
+                    return success_response(
+                        data={"payment_url": payment_url},
+                    )
+
+                return bad_request_response(message=response_data.get('message', 'Failed to initiate payment.'))
+
+            return bad_request_response(message='Failed to initiate payment.')
+
+        except Exception as e:
+            return bad_request_response(message=str(e))
 
 
     @staticmethod
@@ -140,6 +189,30 @@ class Paystack:
 
             return bad_request_response(message='Failed to verify payment.')
 
+        except Transaction.DoesNotExist:
+            return bad_request_response(message="Transaction not found.")
+        except Exception as e:
+            print(e)
+            return bad_request_response(message='Unable to verify payment at the moment')
+        
+
+    @staticmethod
+    def validate_payment_donation(transaction_id):
+        try:
+            # Verify payment with Paystack
+            response = requests.get(
+                f"https://api.paystack.co/transaction/verify/{transaction_id}",
+                headers=Paystack.get_header()
+            )
+            if response.ok:
+                response_data = response.json()
+                if response.status_code == 200 and response_data["status"] in ["success",True]:
+
+                    return success_response(
+                                message="Transaction already successful.",
+                    )
+                return bad_request_response(message="Payment verification failed.")
+            return bad_request_response(message='Failed to verify payment.')
         except Transaction.DoesNotExist:
             return bad_request_response(message="Transaction not found.")
         except Exception as e:

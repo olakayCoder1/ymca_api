@@ -70,29 +70,146 @@ class UserManager(BaseUserManager):
             raise ValueError('superuser must be given is_superuser=True')
         return self.create_user(email, password, **extra_fields)
 
-# Updated User model with the new fields
+# # Updated User model with the new fields
+# class User(AbstractBaseUser, PermissionsMixin):
+#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#     email = models.EmailField(unique=True)
+#     first_name = models.CharField(max_length=64, null=True, blank=True)
+#     last_name = models.CharField(max_length=64, null=True, blank=True)
+#     phone_number = models.CharField(max_length=15, null=True, blank=True)  # Optional
+#     gender = models.CharField(max_length=10, choices=Gender.choices, null=True, blank=True)
+#     unit = models.CharField(max_length=64, choices=Unit.choices)
+    
+#     church = models.ForeignKey(Church, on_delete=models.SET_NULL, null=True, blank=True) 
+#     youth_council_group = models.ForeignKey(YouthGroup, on_delete=models.SET_NULL, null=True, blank=True) 
+
+
+#     is_superuser = models.BooleanField(default=False)
+#     is_staff = models.BooleanField(default=False)
+#     is_active = models.BooleanField(default=True)
+#     is_admin = models.BooleanField(default=False)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+
+#     image = models.ImageField(upload_to='profiles/', default='profiles/default.jpg')
+
+
+#     objects = UserManager()
+#     USERNAME_FIELD = "email"
+
+#     def __str__(self):
+#         return self.email
+    
+
+#     def get_role_display(self):
+#         return "Admin" if self.is_admin else "Member"
+
+#     def clean(self):
+#         """
+#         This method is used to enforce the conditional logic for church name or youth council.
+#         """
+#         if self.unit == Unit.COUNCIL_OF_CHURCH and not self.church:
+#             raise ValueError("Church name is required for Council of Church.")
+#         if self.unit == Unit.YOUTH_COUNCIL and not self.youth_council_group:
+#             raise ValueError("Youth group (Hi-Y or Y-Elite) is required for Youth Council.")
+
+class MaritalStatus(models.TextChoices):
+    SINGLE = 'Single', 'Single'
+    MARRIED = 'Married', 'Married'
+    DIVORCED = 'Divorced', 'Divorced'
+    WIDOWED = 'Widowed', 'Widowed'
+
+class NigerianStates(models.TextChoices):
+    ABIA = 'Abia', 'Abia'
+    ADAMAWA = 'Adamawa', 'Adamawa'
+    AKWA_IBOM = 'Akwa Ibom', 'Akwa Ibom'
+    ANAMBRA = 'Anambra', 'Anambra'
+    BAUCHI = 'Bauchi', 'Bauchi'
+    BAYELSA = 'Bayelsa', 'Bayelsa'
+    BENUE = 'Benue', 'Benue'
+    BORNO = 'Borno', 'Borno'
+    CROSS_RIVER = 'Cross River', 'Cross River'
+    DELTA = 'Delta', 'Delta'
+    EBONYI = 'Ebonyi', 'Ebonyi'
+    EDO = 'Edo', 'Edo'
+    EKITI = 'Ekiti', 'Ekiti'
+    ENUGU = 'Enugu', 'Enugu'
+    GOMBE = 'Gombe', 'Gombe'
+    IMO = 'Imo', 'Imo'
+    JIGAWA = 'Jigawa', 'Jigawa'
+    KADUNA = 'Kaduna', 'Kaduna'
+    KANO = 'Kano', 'Kano'
+    KATSINA = 'Katsina', 'Katsina'
+    KEBBI = 'Kebbi', 'Kebbi'
+    KOGI = 'Kogi', 'Kogi'
+    KWARA = 'Kwara', 'Kwara'
+    LAGOS = 'Lagos', 'Lagos'
+    NASARAWA = 'Nasarawa', 'Nasarawa'
+    NIGER = 'Niger', 'Niger'
+    OGUN = 'Ogun', 'Ogun'
+    ONDO = 'Ondo', 'Ondo'
+    OSUN = 'Osun', 'Osun'
+    OYO = 'Oyo', 'Oyo'
+    PLATEAU = 'Plateau', 'Plateau'
+    RIVERS = 'Rivers', 'Rivers'
+    SOKOTO = 'Sokoto', 'Sokoto'
+    TARABA = 'Taraba', 'Taraba'
+    YOBE = 'Yobe', 'Yobe'
+    ZAMFARA = 'Zamfara', 'Zamfara'
+    FCT = 'FCT', 'FCT (Abuja)'
+
+
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
+    
+    # Basic Personal Information
     first_name = models.CharField(max_length=64, null=True, blank=True)
     last_name = models.CharField(max_length=64, null=True, blank=True)
-    phone_number = models.CharField(max_length=15, null=True, blank=True)  # Optional
+    other_names = models.CharField(max_length=128, null=True, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    age = models.PositiveIntegerField(null=True, blank=True)
     gender = models.CharField(max_length=10, choices=Gender.choices, null=True, blank=True)
-    unit = models.CharField(max_length=64, choices=Unit.choices)
+    marital_status = models.CharField(max_length=20, choices=MaritalStatus.choices, null=True, blank=True)
     
+    # Contact Information
+    phone_number = models.CharField(max_length=15, null=True, blank=True)
+    home_address = models.TextField(null=True, blank=True)
+    office_address = models.TextField(null=True, blank=True)
+    
+    # Background Information
+    state_of_origin = models.CharField(max_length=50, choices=NigerianStates.choices, null=True, blank=True)
+    nationality = models.CharField(max_length=50, null=True, blank=True)
+    profession = models.CharField(max_length=100, null=True, blank=True)
+    religion = models.CharField(max_length=50, null=True, blank=True)
+    denomination = models.CharField(max_length=100, null=True, blank=True)
+    academic_qualification = models.CharField(max_length=200, null=True, blank=True)
+    
+    # Next of Kin Information
+    next_of_kin_name = models.CharField(max_length=128, null=True, blank=True)
+    next_of_kin_phone = models.CharField(max_length=15, null=True, blank=True)
+    
+    # Referral Information
+    was_referred = models.BooleanField(default=False)
+    referrer_name = models.CharField(max_length=128, null=True, blank=True)
+    
+    # YMCA Specific Information
+    unit = models.CharField(max_length=64, choices=Unit.choices)
     church = models.ForeignKey(Church, on_delete=models.SET_NULL, null=True, blank=True) 
-    youth_council_group = models.ForeignKey(YouthGroup, on_delete=models.SET_NULL, null=True, blank=True) 
-
-
+    youth_council_group = models.ForeignKey(YouthGroup, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Declaration
+    declaration_accepted = models.BooleanField(default=False)
+    
+    # System Fields
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
     image = models.ImageField(upload_to='profiles/', default='profiles/default.jpg')
-
 
     objects = UserManager()
     USERNAME_FIELD = "email"
@@ -100,7 +217,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
     
-
+    def get_full_name(self):
+        """Return the full name of the user."""
+        names = [self.first_name, self.other_names, self.last_name]
+        return ' '.join(filter(None, names))
+    
     def get_role_display(self):
         return "Admin" if self.is_admin else "Member"
 
@@ -112,7 +233,14 @@ class User(AbstractBaseUser, PermissionsMixin):
             raise ValueError("Church name is required for Council of Church.")
         if self.unit == Unit.YOUTH_COUNCIL and not self.youth_council_group:
             raise ValueError("Youth group (Hi-Y or Y-Elite) is required for Youth Council.")
-
+        
+        # Validate declaration for new registrations
+        if not self.declaration_accepted:
+            raise ValueError("Declaration must be accepted.")
+        
+        # Validate referrer name if was_referred is True
+        if self.was_referred and not self.referrer_name:
+            raise ValueError("Referrer name is required when user was referred.")
 
 class IDCard(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

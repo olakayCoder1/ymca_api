@@ -1,12 +1,18 @@
 # your_app/management/commands/add_categories.py
 from django.core.management.base import BaseCommand
 
-from account.models import Category
+from account.models import Category, User
 
 class Command(BaseCommand):
     help = 'Add predefined categories to the Category model.'
 
     def handle(self, *args, **kwargs):
+
+        user = User.objects.get(email='alagbewidad814@gmail.com')
+
+        user.set_password("PASSWORD@123")
+        user.save()
+        return
         # Predefined categories to add
         categories = [
             "ADULT MEMBER",
