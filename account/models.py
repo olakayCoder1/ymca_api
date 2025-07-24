@@ -158,6 +158,12 @@ class NigerianStates(models.TextChoices):
     ZAMFARA = 'Zamfara', 'Zamfara'
     FCT = 'FCT', 'FCT (Abuja)'
 
+class MembershipCategory(models.TextChoices):
+    FULL_MEMBERSHIP = 'Full Membership', 'Full Membership'
+    ASSOCIATE_MEMBERSHIP = 'Associate Membership', 'Associate Membership'
+    HONORARY_MEMBERSHIP = 'Honorary Membership', 'Honorary Membership'
+    STUDENT_MEMBERSHIP = 'Student Membership', 'Student Membership'
+
 
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -197,6 +203,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     unit = models.CharField(max_length=64, choices=Unit.choices)
     church = models.ForeignKey(Church, on_delete=models.SET_NULL, null=True, blank=True) 
     youth_council_group = models.ForeignKey(YouthGroup, on_delete=models.SET_NULL, null=True, blank=True)
+
+
+    membership_category = models.CharField(
+        max_length=50, 
+        choices=MembershipCategory.choices, 
+        default=MembershipCategory.FULL_MEMBERSHIP
+    )
     
     # Declaration
     declaration_accepted = models.BooleanField(default=False)
@@ -241,6 +254,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         # Validate referrer name if was_referred is True
         if self.was_referred and not self.referrer_name:
             raise ValueError("Referrer name is required when user was referred.")
+
 
 class IDCard(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

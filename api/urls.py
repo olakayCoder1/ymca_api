@@ -2,7 +2,7 @@ from django.urls import path
 from account import views as account_views
 from api.views.category import CategoryListView, ChurchListView, YouthGroupListView
 from api.views.transaction import ActivateMembershipView, InitiateDonationPamentView, VerifyDonationPamentView, StartMembershipDemoView, VerifyPaymentView
-from api.views.members import  AdminAddMembersView, AdminGetMemberOverview, AdminMemberRetrieveUpdateDestroyView, AdminMembersBulkUploadView
+from api.views.members import  AdminAddMembersView, AdminGetMemberOverview, AdminMemberRetrieveUpdateDestroyView, AdminMemberUpdateDestroyView, AdminMembersBulkUploadView
 
 
 urlpatterns = [
@@ -21,6 +21,7 @@ urlpatterns = [
     path('admin/members/overview', AdminGetMemberOverview.as_view(), name='AdminGetMemberOverview'),
     path('admin/members/upload', AdminMembersBulkUploadView.as_view(), name='AdminMembersBulkUploadView'),
     path('admin/members/<id>', AdminMemberRetrieveUpdateDestroyView.as_view(), name='AdminMemberRetrieveUpdateDestroyView'), 
+    path('admin/members/<id>/update', AdminMemberUpdateDestroyView.as_view(), name='AdminMemberUpdateDestroyView'), 
 
     path('membership/demo', StartMembershipDemoView.as_view(), name='StartMembershipDemoView'),
     path('membership/activation', ActivateMembershipView.as_view(), name='ActivateMembershipView'),
