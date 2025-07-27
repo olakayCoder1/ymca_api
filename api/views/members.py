@@ -1,15 +1,17 @@
 import csv
 import io
+from datetime import date
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from django.db import transaction
-from django.db import IntegrityError
+from django.db import transaction,IntegrityError
+from django.utils import timezone
 from django.db.models import Count
 from django.db.models.functions import TruncMonth
-from account.models import Category, Church, IDCard, User, YouthGroup
-from account.serializers import RegisterSerializer
+from account.models import Category, Church, IDCard, User, UserRequest, YouthGroup, RequestStatus
+from account.serializers import IDCardSerializer, RegisterSerializer
 from account.serializers import UserSerializer
-from api.utils.response.response_format import success_response, paginate_success_response, bad_request_response
+from api.serializers.members import UserRequestListSerializer, UserRequestSerializer
+from api.utils.response.response_format import success_response, paginate_success_response, bad_request_response,internal_server_error_response
 
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -292,6 +294,74 @@ class AdminMemberRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView
         
 
 
+class CreateUserRequestView(generics.CreateAPIView):
+    """
+    Create a new user request
+    """
+    serializer_class = UserRequestSerializer
+    permission_classes = []  # User must be logged in
+    parser_classes = [MultiPartParser, FormParser]  # Handle file uploads
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            user_request = serializer.save()
+            
+            response_data = {
+                'id': str(user_request.id),
+                'first_name': user_request.first_name,
+                'last_name': user_request.last_name,
+                'phone_number': user_request.phone_number,
+                'address': user_request.address,
+                'valid_id_type': user_request.valid_id_type,
+                'valid_id_number': user_request.valid_id_number,
+                'status': user_request.status,
+                'created_at': user_request.created_at,
+            }
+            
+            return success_response(
+                message='Request submitted successfully',
+                data=response_data
+            )
+            
+        except ValueError as e:
+            print(e)
+            return bad_request_response(
+                message='Invalid request data'
+            )
+        
+        except Exception as e:
+            return internal_server_error_response(
+                message= 'An error occurred while processing your request'
+            )
+
+
+class UserRequestListView(generics.ListAPIView):
+    """
+    List all requests for the authenticated user
+    """
+    serializer_class = UserRequestListSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return UserRequest.objects.filter(user=self.request.user)
+
+
+class UserRequestDetailView(generics.RetrieveAPIView):
+    """
+    Retrieve a specific user request
+    """
+    serializer_class = UserRequestSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return UserRequest.objects.filter(user=self.request.user)
+
+
+
+
 class AdminMemberUpdateDestroyView(generics.GenericAPIView):
 
     queryset = User.objects.filter(is_admin=False).order_by('-created_at')
@@ -341,3 +411,107 @@ class AdminMemberUpdateDestroyView(generics.GenericAPIView):
        
         
 
+# Admin views (optional - for admin panel)
+class AdminUserRequestListView(generics.ListAPIView):
+    """
+    List all requests for admin users
+    """
+    serializer_class = UserRequestListSerializer
+    permission_classes = [IsAuthenticated] 
+    queryset = UserRequest.objects.all()
+    
+    def get_queryset(self):
+        # Only allow admin users to see all requests
+        if not self.request.user.is_admin:
+            return UserRequest.objects.none()
+        return super().get_queryset()
+    
+
+    def get(self, request, *args, **kwargs):
+        members = self.get_queryset()
+        serializer = self.serializer_class(members, many=True, context={'request': request})
+        return paginate_success_response(request, serializer.data, int(request.GET.get('page_size', 10)))
+
+
+class AdminUpdateRequestStatusView(generics.UpdateAPIView):
+    """
+    Update request status (admin only)
+    """
+    permission_classes = [IsAuthenticated] 
+    queryset = UserRequest.objects.all()
+    
+    def patch(self, request, *args, **kwargs):
+        if not request.user.is_admin:
+            return Response({
+                'success': False,
+                'message': 'Permission denied'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        user_request = self.get_object()
+        new_status = request.data.get('status')
+        review_notes = request.data.get('review_notes', '')
+        
+        if new_status not in [choice[0] for choice in RequestStatus.choices]:
+            return Response({
+                'success': False,
+                'message': 'Invalid status'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        user_request.status = new_status
+        user_request.review_notes = review_notes
+        user_request.reviewed_by = request.user
+        user_request.reviewed_at = timezone.now()
+        user_request.save()
+        
+        return success_response(
+            data={
+                'id': str(user_request.id),
+                'status': user_request.status,
+                'reviewed_by': request.user.email,
+                'reviewed_at': user_request.reviewed_at,
+            },
+            message='Request status updated successfully'
+        )
+
+
+
+
+class VerifyCardIdNumberView(generics.GenericAPIView):
+    permission_classes = []
+
+    def get(self, request, id_number):
+        card = IDCard.objects.filter(id_number=id_number).first()
+
+        # If card is not found
+        if not card:
+            return success_response(
+                data={
+                    'valid': False,
+                    'error': 'Card not found or invalid verification ID',
+                    'cardId': id_number
+                }
+            )
+
+        # Check and update expiration status
+        if card.expired_at and card.expired_at < date.today():
+            if not card.expired:
+                card.expired = True
+                card.save(update_fields=['expired'])
+        else:
+            if card.expired:
+                card.expired = False
+                card.save(update_fields=['expired'])
+
+        # Build response
+        response_data = IDCardSerializer(card).data
+        response_data['first_name'] = card.user.first_name
+        response_data['last_name'] = card.user.last_name
+
+        return success_response(
+            data=dict(
+                valid=True,
+                data=response_data,
+                verifiedAt=card.updated_at,
+                expired=card.expired
+            )
+        )

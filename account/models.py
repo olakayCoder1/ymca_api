@@ -274,3 +274,90 @@ class IDCard(models.Model):
         if not self.id_number:
             self.id_number = 'NTST{}'.format(str(random.randint(123456789000, 9876543210000)))
         super().save(*args, **kwargs)
+
+
+
+class ValidIdType(models.TextChoices):
+    NIN = 'NIN', 'National Identity Number (NIN)'
+    DRIVERS_LICENSE = 'drivers_license', 'Driver\'s License'
+    VOTERS_CARD = 'voters_card', 'Voter\'s Card'
+    INTERNATIONAL_PASSPORT = 'international_passport', 'International Passport'
+    BVN = 'bvn', 'Bank Verification Number (BVN)'
+
+class RequestStatus(models.TextChoices):
+    PENDING = 'pending', 'Pending'
+    IN_REVIEW = 'in_review', 'In Review'
+    APPROVED = 'approved', 'Approved'
+    REJECTED = 'rejected', 'Rejected'
+    COMPLETED = 'completed', 'Completed'
+
+class UserRequest(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,blank=True, related_name='requests')
+    
+    email = models.EmailField(null=True,blank=True)
+    # Personal Information from form
+    first_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255)
+    phone_number = models.CharField(max_length=15)
+    address = models.TextField()
+    
+    # ID Information
+    valid_id_type = models.CharField(max_length=50, choices=ValidIdType.choices)
+    valid_id_number = models.CharField(max_length=100)
+    
+    # File Upload
+    passport_photo = models.ImageField(upload_to='request_photos/')
+    
+    # Request Management
+    status = models.CharField(
+        max_length=20, 
+        choices=RequestStatus.choices, 
+        default=RequestStatus.PENDING
+    )
+    
+    # Admin fields
+    reviewed_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='reviewed_requests'
+    )
+    review_notes = models.TextField(null=True, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'User Request'
+        verbose_name_plural = 'User Requests'
+    
+    def __str__(self):
+        return f"Request by {self.first_name} - {self.status}"
+    
+    def clean(self):
+        """Validate the request data"""
+        super().clean()
+        
+        if not self.first_name.strip():
+            raise ValueError("Full name is required")
+        
+        if not self.last_name.strip():
+            raise ValueError("Full name is required")
+        
+        if not self.phone_number.strip():
+            raise ValueError("Phone number is required")
+        
+        if not self.address.strip():
+            raise ValueError("Address is required")
+        
+        if not self.valid_id_number.strip():
+            raise ValueError("Valid ID number is required")
+
+
+# serializers.py
+

@@ -2,7 +2,7 @@ from django.urls import path
 from account import views as account_views
 from api.views.category import CategoryListView, ChurchListView, YouthGroupListView
 from api.views.transaction import ActivateMembershipView, InitiateDonationPamentView, VerifyDonationPamentView, StartMembershipDemoView, VerifyPaymentView
-from api.views.members import  AdminAddMembersView, AdminGetMemberOverview, AdminMemberRetrieveUpdateDestroyView, AdminMemberUpdateDestroyView, AdminMembersBulkUploadView
+from api.views.members import  AdminAddMembersView, AdminGetMemberOverview, AdminMemberRetrieveUpdateDestroyView, AdminMemberUpdateDestroyView, AdminMembersBulkUploadView, AdminUpdateRequestStatusView, AdminUserRequestListView, CreateUserRequestView, UserRequestDetailView, UserRequestListView, VerifyCardIdNumberView
 
 
 urlpatterns = [
@@ -22,6 +22,16 @@ urlpatterns = [
     path('admin/members/upload', AdminMembersBulkUploadView.as_view(), name='AdminMembersBulkUploadView'),
     path('admin/members/<id>', AdminMemberRetrieveUpdateDestroyView.as_view(), name='AdminMemberRetrieveUpdateDestroyView'), 
     path('admin/members/<id>/update', AdminMemberUpdateDestroyView.as_view(), name='AdminMemberUpdateDestroyView'), 
+        # User endpoints
+    path('requests/', CreateUserRequestView.as_view(), name='create-request'),
+    path('requests/list/', UserRequestListView.as_view(), name='list-requests'),
+    path('requests/<uuid:pk>/', UserRequestDetailView.as_view(), name='request-detail'),
+    
+    # Admin endpoints
+    path('admin/requests/', AdminUserRequestListView.as_view(), name='admin-list-requests'),
+    path('admin/requests/<uuid:pk>/status/', AdminUpdateRequestStatusView.as_view(), name='admin-update-request-status'),
+
+    path('id-verification/<id_number>', VerifyCardIdNumberView.as_view(), name='VerifyCardIdNumberView'),
 
     path('membership/demo', StartMembershipDemoView.as_view(), name='StartMembershipDemoView'),
     path('membership/activation', ActivateMembershipView.as_view(), name='ActivateMembershipView'),
