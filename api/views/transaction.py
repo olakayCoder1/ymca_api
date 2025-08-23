@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate
 
-from account.models import IDCard
+from account.models import IDCard, User
 from api.serializers.donation import DonationInitiateSerializer
 from api.utils.payment.paystack import Paystack
 from api.utils.response.response_format import success_response, bad_request_response
@@ -99,3 +99,10 @@ class VerifyPaymentView(generics.GenericAPIView):
 
 
 
+
+
+class TotalMembersCountView(generics.GenericAPIView):
+    permission_classes = []
+
+    def get(self, request, *args, **kwargs):
+        return success_response(data={"count":User.objects.count()})

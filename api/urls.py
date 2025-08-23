@@ -1,11 +1,27 @@
 from django.urls import path
 from account import views as account_views
 from api.views.category import CategoryListView, ChurchListView, YouthGroupListView
-from api.views.transaction import ActivateMembershipView, InitiateDonationPamentView, VerifyDonationPamentView, StartMembershipDemoView, VerifyPaymentView
+from api.views.transaction import ActivateMembershipView, InitiateDonationPamentView, TotalMembersCountView, VerifyDonationPamentView, StartMembershipDemoView, VerifyPaymentView
 from api.views.members import  AdminAddMembersView, AdminGetMemberOverview, AdminMemberRetrieveUpdateDestroyView, AdminMemberUpdateDestroyView, AdminMembersBulkUploadView, AdminUpdateRequestStatusView, AdminUserRequestListView, CreateUserRequestView, UserRequestDetailView, UserRequestListView, VerifyCardIdNumberView
 
 
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from . import views
+from .views import post as post_view
+
+# Create a router for ViewSets
+router = DefaultRouter()
+router.register(r'posts', post_view.PostViewSet, basename='posts')
+router.register(r'attachments', post_view.UpdateAttachmentViewSet, basename='attachments')
+
+
+
 urlpatterns = [
+
+    path('', include(router.urls)),
+    # path('posts/bulk-attachments/', post_view.BulkAttachmentUploadView.as_view(), name='bulk-attachments'),
+
     path('register/', account_views.RegisterUserView.as_view(), name='register'),
     path('login/', account_views.LoginUserView.as_view(), name='login'),
 
@@ -38,4 +54,6 @@ urlpatterns = [
     path('payment/verify', VerifyPaymentView.as_view(), name='VerifyPaymentView'), 
     path('initiate/donation', InitiateDonationPamentView.as_view(), name='InitiateDonationPamentView'), 
     path('verify/donation', VerifyDonationPamentView.as_view(), name='VerifyDonationPamentView'), 
+
+    path('total-members-count', TotalMembersCountView.as_view(), name='TotalMembersCountView'), 
 ]
