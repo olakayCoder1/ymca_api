@@ -23,12 +23,24 @@ class UpdateAttachmentSerializer(serializers.ModelSerializer):
 
 
 class PostListSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+    # user = UserSerializer(read_only=True)
     attachments = UpdateAttachmentSerializer(many=True, read_only=True, source='updateattachment_set')
 
     class Meta:
         model = Post
-        fields = ['id', 'user', 'title', 'content', 'created_at', 'updated_at', 'image', 'attachments']
+        fields = ['id',  'title', 'content','category', 'created_at', 'updated_at', 'image', 'attachments']
+
+    def to_representation(self, instance:Post):
+        data =  super().to_representation(instance)
+
+        if instance.user:
+            data['user'] = {
+                'id': instance.user.id,
+                'first_name': instance.user.first_name,
+                'last_name': instance.user.last_name,
+                'email': instance.user.email,
+            }
+        return data
 
 
 class PostCreateUpdateSerializer(serializers.ModelSerializer):

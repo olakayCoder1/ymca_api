@@ -14,6 +14,20 @@ from api.models import Post, UpdateAttachment
 from api.serializers.post import AttachmentCreateSerializer, PostCreateUpdateSerializer, PostListSerializer, UpdateAttachmentSerializer
 from api.utils.response.response_format import success_response, bad_request_response
 
+import base64, uuid
+from django.core.files.base import ContentFile
+
+def base64_to_file(data_url, filename=None):
+    try:
+        if not data_url.startswith('data:'):
+            return None
+
+        format, imgstr = data_url.split(';base64,')  # e.g. data:image/png;base64,...
+        ext = format.split('/')[-1]  # 'png', 'jpeg', etc.
+        file_name = filename or f"{uuid.uuid4()}.{ext}"
+        return ContentFile(base64.b64decode(imgstr), name=file_name)
+    except Exception as e:
+        return None
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -22,15 +36,68 @@ class PostViewSet(viewsets.ModelViewSet):
     """
     queryset = Post.objects.all().select_related('user').prefetch_related('updateattachment_set')
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['title', 'content']
-    ordering_fields = ['created_at', 'updated_at', 'title']
-    ordering = ['-created_at']  # Default ordering by newest first
+    # filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    # search_fields = ['title', 'content']
+    # ordering_fields = ['created_at', 'updated_at', 'title']
+    serializer_class = PostListSerializer
+    ordering = ['-created_at']  
 
+
+    # def create(self, request, *args, **kwargs):
+    #     response = super().create(request, *args, **kwargs)
+    #     return success_response(data=response.data, message='Post created successfully', status_code=response.status_code)
 
     def create(self, request, *args, **kwargs):
-        response = super().create(request, *args, **kwargs)
-        return success_response(data=response.data, message='Post created successfully', status_code=response.status_code)
+        title = request.data.get('title')
+        content = request.data.get('content')
+        category = request.data.get('category')  # Not in model yet
+        posted_by = request.user
+        image_base64 = request.data.get('imageBase64')
+        attachments = request.data.get('attachments', [])
+
+        # Step 1: Validate required fields
+        if not title or not content:
+            return Response({"detail": "Title and content are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Step 2: Process image (optional)
+        image_file = None
+        if image_base64:
+            image_file = base64_to_file(image_base64)
+            if not image_file:
+                return Response({"detail": "Invalid base64 image format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Step 3: Create Post
+        post = Post.objects.create(
+            title=title,
+            content=content,
+            user=posted_by,
+            category=category,
+            image=image_file  # Can be None
+        )
+
+        print(post.user)
+
+        # Step 4: Handle attachments (optional)
+        for att in attachments:
+            base64_data = att.get('base64')
+            name = att.get('name') or f"{uuid.uuid4()}"
+            if not base64_data:
+                continue  # Skip invalid attachment
+            file_obj = base64_to_file(base64_data, filename=name)
+            if not file_obj:
+                continue  # Skip malformed base64
+            UpdateAttachment.objects.create(post=post, file=file_obj)
+
+
+
+        post = Post.objects.select_related('user').prefetch_related('updateattachment_set').get(id=post.id)
+
+
+        # Optional: Serialize response (or return data directly)
+        return Response(
+            # PostListSerializer(post).data,
+            status=200
+        )
     
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
@@ -51,8 +118,16 @@ class PostViewSet(viewsets.ModelViewSet):
     
 
     def list(self, request, *args, **kwargs):
-        response =  super().list(request, *args, **kwargs)
-        return success_response(data=response.data, message='Posts retrieved successfully')
+        # response =  super().list(request, *args, **kwargs)
+        query_set = self.get_queryset()
+        category = request.GET.get('category')
+        if category:
+            if category != 'All':
+                query_set = query_set.filter(category=category)
+
+        serializer = self.serializer_class(query_set,many=True)
+
+        return success_response(data=serializer.data, message='Posts retrieved successfully')
 
 
     def get_serializer_class(self):

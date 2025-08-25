@@ -11,6 +11,16 @@ class Post(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL , null=True, blank=True)
     title = models.CharField(max_length=200)
     content = models.TextField(null=True)
+    category = models.CharField(
+        max_length=20, 
+        default="Announcements",
+        choices=(
+        ('Announcements','Announcements'),
+        ('Events','Events'),
+        ('Prayer Requests','Prayer Requests'),
+        ('Ministries','Ministries'),
+        ('Sermons','Sermons'),
+    ))
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)        
     image = models.ImageField(upload_to='post-images')
