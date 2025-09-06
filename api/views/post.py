@@ -35,7 +35,7 @@ class PostViewSet(viewsets.ModelViewSet):
     ViewSet for managing posts
     """
     queryset = Post.objects.all().select_related('user').prefetch_related('updateattachment_set')
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     # filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     # search_fields = ['title', 'content']
     # ordering_fields = ['created_at', 'updated_at', 'title']
@@ -119,13 +119,13 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         # response =  super().list(request, *args, **kwargs)
-        query_set = self.get_queryset()
+        query_set = self.get_queryset().order_by('-created_at')
         category = request.GET.get('category')
         if category:
             if category != 'All':
                 query_set = query_set.filter(category=category)
 
-        serializer = self.serializer_class(query_set,many=True)
+        serializer = self.serializer_class(query_set,many=True,context={'request': request})
 
         return success_response(data=serializer.data, message='Posts retrieved successfully')
 

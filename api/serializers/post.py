@@ -30,8 +30,10 @@ class PostListSerializer(serializers.ModelSerializer):
         model = Post
         fields = ['id',  'title', 'content','category', 'created_at', 'updated_at', 'image', 'attachments']
 
-    def to_representation(self, instance:Post):
-        data =  super().to_representation(instance)
+    def to_representation(self, instance: Post):
+        data = super().to_representation(instance)
+
+        request = self.context.get('request')
 
         if instance.user:
             data['user'] = {
@@ -40,9 +42,16 @@ class PostListSerializer(serializers.ModelSerializer):
                 'last_name': instance.user.last_name,
                 'email': instance.user.email,
             }
+
+        if instance.image:
+            relative_url = instance.image.url 
+            if request is not None:
+                full_url = request.build_absolute_uri(relative_url)
+            else:
+                full_url = relative_url
+            data['image'] = full_url
+
         return data
-
-
 class PostCreateUpdateSerializer(serializers.ModelSerializer):
     # Base64 file fields for creating/updating
     image_base64 = serializers.CharField(write_only=True, required=False, allow_blank=True)
