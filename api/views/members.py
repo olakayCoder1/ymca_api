@@ -433,6 +433,32 @@ class AdminUserRequestListView(generics.ListAPIView):
         return paginate_success_response(request, serializer.data, int(request.GET.get('page_size', 10)))
 
 
+
+
+
+class AdminGetSingleRequestView(generics.RetrieveAPIView):
+    """
+    Get single request (admin only)
+    """
+    permission_classes = [IsAuthenticated] 
+    queryset = UserRequest.objects.all()
+    serializer_class = UserRequestSerializer
+    
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_admin:
+            return Response({
+                'success': False,
+                'message': 'Permission denied'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        user_request = self.get_object()
+        serializer = self.serializer_class(user_request, context={'request': request})
+        return success_response(
+            data=serializer.data,
+            message='Request retrieved successfully'
+        )   
+
+
 class AdminUpdateRequestStatusView(generics.UpdateAPIView):
     """
     Update request status (admin only)

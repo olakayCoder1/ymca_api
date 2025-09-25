@@ -2,7 +2,7 @@ from django.urls import path
 from account import views as account_views
 from api.views.category import CategoryListView, ChurchListView, YouthGroupListView
 from api.views.transaction import ActivateMembershipView, InitiateDonationPamentView, TotalMembersCountView, VerifyDonationPamentView, StartMembershipDemoView, VerifyPaymentView
-from api.views.members import  AdminAddMembersView, AdminGetMemberOverview, AdminMemberRetrieveUpdateDestroyView, AdminMemberUpdateDestroyView, AdminMembersBulkUploadView, AdminUpdateRequestStatusView, AdminUserRequestListView, CreateUserRequestView, UserRequestDetailView, UserRequestListView, VerifyCardIdNumberView
+from api.views.members import  AdminAddMembersView,AdminGetSingleRequestView, AdminGetMemberOverview, AdminMemberRetrieveUpdateDestroyView, AdminMemberUpdateDestroyView, AdminMembersBulkUploadView, AdminUpdateRequestStatusView, AdminUserRequestListView, CreateUserRequestView, UserRequestDetailView, UserRequestListView, VerifyCardIdNumberView
 
 
 from django.urls import path, include
@@ -45,6 +45,7 @@ urlpatterns = [
     
     # Admin endpoints
     path('admin/requests/', AdminUserRequestListView.as_view(), name='admin-list-requests'),
+    path('admin/requests/<uuid:pk>/', AdminGetSingleRequestView.as_view(), name='admin-get-single-request'),
     path('admin/requests/<uuid:pk>/status/', AdminUpdateRequestStatusView.as_view(), name='admin-update-request-status'),
 
     path('id-verification/<id_number>', VerifyCardIdNumberView.as_view(), name='VerifyCardIdNumberView'),
