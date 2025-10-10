@@ -169,50 +169,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     
-    # Basic Personal Information
+    # Essential Personal Information for Authentication
     first_name = models.CharField(max_length=64, null=True, blank=True)
     last_name = models.CharField(max_length=64, null=True, blank=True)
-    other_names = models.CharField(max_length=128, null=True, blank=True)
-    date_of_birth = models.DateField(null=True, blank=True)
-    age = models.PositiveIntegerField(null=True, blank=True)
-    gender = models.CharField(max_length=10, choices=Gender.choices, null=True, blank=True)
-    marital_status = models.CharField(max_length=20, choices=MaritalStatus.choices, null=True, blank=True)
     
-    # Contact Information
-    phone_number = models.CharField(max_length=15, null=True, blank=True)
-    home_address = models.TextField(null=True, blank=True)
-    office_address = models.TextField(null=True, blank=True)
-    
-    # Background Information
-    state_of_origin = models.CharField(max_length=50, choices=NigerianStates.choices, null=True, blank=True)
-    nationality = models.CharField(max_length=50, null=True, blank=True)
-    profession = models.CharField(max_length=100, null=True, blank=True)
-    religion = models.CharField(max_length=50, null=True, blank=True)
-    denomination = models.CharField(max_length=100, null=True, blank=True)
-    academic_qualification = models.CharField(max_length=200, null=True, blank=True)
-    
-    # Next of Kin Information
-    next_of_kin_name = models.CharField(max_length=128, null=True, blank=True)
-    next_of_kin_phone = models.CharField(max_length=15, null=True, blank=True)
-    
-    # Referral Information
-    was_referred = models.BooleanField(default=False)
-    referrer_name = models.CharField(max_length=128, null=True, blank=True)
-    
-    # YMCA Specific Information
-    unit = models.CharField(max_length=64, choices=Unit.choices)
-    church = models.ForeignKey(Church, on_delete=models.SET_NULL, null=True, blank=True) 
-    youth_council_group = models.ForeignKey(YouthGroup, on_delete=models.SET_NULL, null=True, blank=True)
-
-
-    membership_category = models.CharField(
-        max_length=50, 
-        choices=MembershipCategory.choices, 
-        default=MembershipCategory.FULL_MEMBERSHIP
-    )
-    
-    # Declaration
-    declaration_accepted = models.BooleanField(default=False)
+    # Reference to UserRequest for detailed information
+    user_request = models.OneToOneField('UserRequest', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_user')
     
     # System Fields
     is_superuser = models.BooleanField(default=False)
@@ -222,6 +184,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    # Profile image
     image = models.ImageField(upload_to='profiles/', default='profiles/default.jpg')
 
     objects = UserManager()
@@ -232,28 +195,21 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     def get_full_name(self):
         """Return the full name of the user."""
-        names = [self.first_name, self.other_names, self.last_name]
-        return ' '.join(filter(None, names))
+        if self.user_request:
+            # Get full name from UserRequest if available
+            names = [self.user_request.first_name, self.user_request.last_name]
+            return ' '.join(filter(None, names))
+        else:
+            # Fallback to User model fields
+            names = [self.first_name, self.last_name]
+            return ' '.join(filter(None, names))
     
     def get_role_display(self):
         return "Admin" if self.is_admin else "Member"
-
-    def clean(self):
-        """
-        This method is used to enforce the conditional logic for church name or youth council.
-        """
-        if self.unit == Unit.COUNCIL_OF_CHURCH and not self.church:
-            raise ValueError("Church name is required for Council of Church.")
-        if self.unit == Unit.YOUTH_COUNCIL and not self.youth_council_group:
-            raise ValueError("Youth group (Hi-Y or Y-Elite) is required for Youth Council.")
-        
-        # Validate declaration for new registrations
-        if not self.declaration_accepted:
-            raise ValueError("Declaration must be accepted.")
-        
-        # Validate referrer name if was_referred is True
-        if self.was_referred and not self.referrer_name:
-            raise ValueError("Referrer name is required when user was referred.")
+    
+    def get_detailed_info(self):
+        """Return detailed information from UserRequest if available."""
+        return self.user_request if self.user_request else None
 
 
 class IDCard(models.Model):
@@ -278,7 +234,7 @@ class IDCard(models.Model):
 
 
 class ValidIdType(models.TextChoices):
-    NIN = 'NIN', 'National Identity Number (NIN)'
+    NIN = 'national_id', 'National Identity Number (NIN)'
     DRIVERS_LICENSE = 'drivers_license', 'Driver\'s License'
     VOTERS_CARD = 'voters_card', 'Voter\'s Card'
     INTERNATIONAL_PASSPORT = 'international_passport', 'International Passport'
@@ -300,14 +256,46 @@ class UserRequest(models.Model):
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=15)
-    address = models.TextField()
+    
+    # Location Information
+    citizen = models.CharField(max_length=20, default='Nigerian')  # Nigerian or Foreigner
+    country = models.CharField(max_length=100,null=True, blank=True)
+    state = models.CharField(max_length=100,null=True, blank=True)
+    lga = models.CharField(max_length=100, null=True, blank=True)  # Only for Nigerians
+    
+    # YMCA Information
+    unit = models.CharField(max_length=100,null=True, blank=True)
+    club = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Additional Personal Information
+    age = models.CharField(max_length=10, null=True, blank=True)
+    gender = models.CharField(max_length=20, null=True, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    place_of_birth = models.CharField(max_length=200, null=True, blank=True)
+    home_address = models.TextField(null=True, blank=True)
+    office_address = models.TextField(null=True, blank=True)
+    profession = models.CharField(max_length=200, null=True, blank=True)
+    religion = models.CharField(max_length=100, null=True, blank=True)
+    church_name = models.CharField(max_length=200, null=True, blank=True)
+    occupation = models.CharField(max_length=200, null=True, blank=True)
+    marital_status = models.CharField(max_length=50, null=True, blank=True)
     
     # ID Information
-    valid_id_type = models.CharField(max_length=50, choices=ValidIdType.choices)
-    valid_id_number = models.CharField(max_length=100)
+    # valid_id_type = models.CharField(max_length=50, choices=ValidIdType.choices)
+    valid_id_number = models.CharField(max_length=100, null=True, blank=True)
     
-    # File Upload
+    # File Uploads
     passport_photo = models.ImageField(upload_to='request_photos/')
+    valid_id_file = models.ImageField(upload_to='request_photos/', null=True, blank=True)
+    
+    # Referral Information
+    next_of_kin = models.CharField(max_length=255, null=True, blank=True)
+    referral_source = models.CharField(max_length=255, null=True, blank=True)
+    referral_name = models.CharField(max_length=255, null=True, blank=True)
+    referred_by = models.CharField(max_length=10, default='no')  # yes or no
+    
+    # Legacy field for backward compatibility
+    address = models.TextField(null=True, blank=True)
     
     # Request Management
     status = models.CharField(
@@ -360,4 +348,3 @@ class UserRequest(models.Model):
 
 
 # serializers.py
-

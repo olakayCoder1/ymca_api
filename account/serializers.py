@@ -2,9 +2,8 @@ import datetime
 from rest_framework import serializers
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from api.serializers.category import ChurchSerializer, YouthGroupSerializer
 from backend import settings
-from .models import IDCard, User, Church, YouthGroup
+from .models import IDCard, User
 
 
 
@@ -40,24 +39,22 @@ class IDCardSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
-    church = ChurchSerializer(read_only=True)
-    youth_council_group = YouthGroupSerializer(read_only=True)
     card = serializers.SerializerMethodField(read_only=True)
     image = serializers.SerializerMethodField()
+    user_request = serializers.SerializerMethodField(read_only=True)
+    
     class Meta:
         model = User 
-        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number','membership_category', 'gender','image', 'unit', 'church',"card","role",'youth_council_group','password','created_at','is_active']
+        fields = ['id', 'email', 'first_name', 'last_name', 'image', 'card','role', 'user_request', 'password', 'created_at', 'is_active']
         extra_kwargs = {'password': {'write_only': True}}
 
-    def get_card(self,obj:User):
+    def get_card(self, obj: User):
         request = self.context.get('request')
-        id_card , created = IDCard.objects.get_or_create(user=obj)
-        return IDCardSerializer(id_card,context={'request': request}).data
-
+        id_card, created = IDCard.objects.get_or_create(user=obj)
+        return IDCardSerializer(id_card, context={'request': request}).data
 
     def get_role(self,obj:User):
         return obj.get_role_display()
-    
 
     def get_image(self, obj):
         if obj.image:
@@ -66,12 +63,19 @@ class UserSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.image.url)
             return f"{settings.BASE_URL}{obj.image.url}"
         return None
+    
+    def get_user_request(self, obj: User):
+        """Return user request data if available"""
+        if obj.user_request:
+            from api.serializers.members import UserRequestSerializer
+            return UserRequestSerializer(obj.user_request).data
+        return None
 
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 'gender', 'unit', 'church', 'youth_council_group','password',]
+        fields = ['id', 'email', 'first_name', 'last_name', 'password']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -80,48 +84,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             first_name=validated_data.get('first_name'),
             last_name=validated_data.get('last_name'),
-            phone_number=validated_data.get('phone_number'),
-            gender=validated_data.get('gender'),
-            unit=validated_data['unit'],
-            church=validated_data.get('church'),
-            youth_council_group=validated_data.get('youth_council_group'),
         )
-        user_id_card , created = IDCard.objects.get_or_create(user=user)
+        user_id_card, created = IDCard.objects.get_or_create(user=user)
         return user
 
-    def validate(self, data):
-        """
-        Validate the user data based on the unit selection.
-        This validation ensures that for 'Council of Church', a church name is provided, 
-        and for 'Youth Council', a youth group (Hi-Y or Y-Elite) is provided.
-        """
-        if data['unit'] == 'Council of Church':
-            church_name = data.get('church')
-            if church_name:
-                # Check if the church name exists in the Church model
-                try:
-                    church = Church.objects.get(id=church_name)
-                    data['church'] = church  # If valid, attach the Church object
-                except Church.DoesNotExist:
-                    raise serializers.ValidationError(f"Church does not exist.")
-                    # raise serializers.ValidationError(f"Church with name '{church_name}' does not exist.")
-            else:
-                raise serializers.ValidationError("Church is required for Council of Church.")
-        
-        if data['unit'] == 'Youth Council':
-            youth_group_name = data.get('youth_council_group')
-            if youth_group_name:
-                # Check if the youth group name exists in the YouthGroup model
-                try:
-                    youth_group = YouthGroup.objects.get(name=youth_group_name)
-                    data['youth_council_group'] = youth_group  # If valid, attach the YouthGroup object
-                except YouthGroup.DoesNotExist:
-                    raise serializers.ValidationError(f"Youth group with name '{youth_group_name}' does not exist.")
-                    # raise serializers.ValidationError(f"Youth group with name '{youth_group_name}' does not exist.")
-            else:
-                raise serializers.ValidationError("Youth group (Hi-Y or Y-Elite) is required for Youth Council.")
 
-        return data
 
 
 

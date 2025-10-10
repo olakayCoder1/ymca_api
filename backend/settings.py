@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "api",
     "account",
     "transaction",
+    "subscription",
 ]
 
 MIDDLEWARE = [

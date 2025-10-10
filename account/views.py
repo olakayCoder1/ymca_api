@@ -22,7 +22,12 @@ class LoginUserView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
-        user = authenticate(request, email=email, password=password)
+
+        
+
+        user = authenticate(request, username=email, password=password)
+
+
         if user is not None:
             if not user.is_active:
                 return bad_request_response(
@@ -112,28 +117,18 @@ class ProfileView(generics.GenericAPIView):
             data=UserSerializer(request.user,context={'request': request}).data,
         )
     
-    def put(self,request):
+    def put(self, request):
         first_name = request.data.get("first_name")
         last_name = request.data.get("last_name")
         email = request.data.get("email")
-        gender = request.data.get("gender")
-        phone_number = request.data.get("phone_number")
 
-        user:User = request.user
+        user: User = request.user
 
         if first_name:
             user.first_name = first_name
 
         if last_name:
             user.last_name = last_name
-
-
-        if gender:
-            user.gender = gender
-
-        if phone_number:
-            user.phone_number = phone_number
-
 
         if email:
             email_exist = User.objects.filter(email=email).exclude(id=request.user.id)
@@ -142,10 +137,11 @@ class ProfileView(generics.GenericAPIView):
                     message='Email already exist',
                 )
             user.email = email
+        
         user.save()
 
         return success_response(
-            data=UserSerializer(request.user,context={'request': request}).data,
+            data=UserSerializer(request.user, context={'request': request}).data,
             message="Profile updated successfully"
         )
     

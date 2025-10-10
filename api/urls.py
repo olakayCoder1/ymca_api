@@ -57,4 +57,7 @@ urlpatterns = [
     path('verify/donation', VerifyDonationPamentView.as_view(), name='VerifyDonationPamentView'), 
 
     path('total-members-count', TotalMembersCountView.as_view(), name='TotalMembersCountView'), 
+    
+    # Subscription endpoints
+    path('subscriptions/', include('subscription.urls')),
 ]

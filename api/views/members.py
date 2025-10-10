@@ -30,11 +30,11 @@ class AdminGetMemberOverview(generics.GenericAPIView):
         response = {}
 
         if overview == 'gender':
-            # Get gender breakdown counts
-            gender_counts = queryset.values('gender').annotate(count=Count('id'))
+            # Get gender breakdown counts from linked UserRequest
+            gender_counts = queryset.filter(user_request__isnull=False).values('user_request__gender').annotate(count=Count('id'))
             
             # Create a dictionary for easy lookup
-            gender_count_dict = {item['gender']: item['count'] for item in gender_counts}
+            gender_count_dict = {item['user_request__gender']: item['count'] for item in gender_counts}
             
             response = [
                 {"name": 'Male', 'value': gender_count_dict.get('Male', 0)},
@@ -131,46 +131,18 @@ class AdminMembersBulkUploadView(generics.GenericAPIView):
             with transaction.atomic():
                 for row_num, row in enumerate(reader, start=2):  # Start from 2 to account for header row
                     try:
-                        # Map CSV fields to expected model fields
+                        # Map CSV fields to expected model fields (only essential fields for User)
                         member_data = {
                             'first_name': row.get('firstName') or row.get('first_name') or '',
                             'last_name': row.get('lastName') or row.get('last_name') or '',
                             'email': row.get('email') or '',
-                            'phone_number': row.get('phoneNumber') or row.get('phone_number') or '',
-                            'gender': row.get('gender') or 'Other',
-                            'unit': row.get('unit') or '',
-                            'church': row.get('church') or None,
-                            'youth_council_group': row.get('youthCouncilGroup') or row.get('youth_council_group') or None,
-                            'category': row.get('category') or 'Adult Member',
-                            'id_number': row.get('id_number') or '',
                         }
 
-                        # old_user = User.objects.filter(email=member_data.get('email')).first()
-
-                        # if old_user:
-                        #     old_user.delete()
-                        #     print(
-                        #         f"Deleted {member_data.get('email')}"
-                        #     )
-
-                        
-                        church = None
-                        if member_data.get('church'):
-                            church = Church.objects.filter(name=row.get('church')).first()
-
-                        youth_council_group = None
-                        if member_data.get('youth_council_group'):
-                            youth_council_group = YouthGroup.objects.filter(name=row.get('youth_council_group')).first() 
-
+                        # Create user with only essential authentication fields
                         user = User.objects.create(
                             first_name=member_data.get('first_name'),
                             last_name=member_data.get('last_name'),
                             email=member_data.get('email') or '',
-                            phone_number=member_data.get('phone_number'),
-                            gender=member_data.get('gender'),
-                            unit=member_data.get('unit'),
-                            church=church,
-                            youth_council_group=youth_council_group,
                         )
 
                         user.set_password('YMCA123456789')
@@ -249,7 +221,7 @@ class AdminAddMembersView(generics.GenericAPIView):
         return success_response(data={})
 
     def get(self, request):
-        members = self.get_queryset()
+        members = self.get_queryset().order_by('-created_at')
         serializer = UserSerializer(members, many=True, context={'request': request})
         return paginate_success_response(request, serializer.data, int(request.GET.get('page_size', 10)))
     
@@ -314,9 +286,11 @@ class CreateUserRequestView(generics.CreateAPIView):
                 'first_name': user_request.first_name,
                 'last_name': user_request.last_name,
                 'phone_number': user_request.phone_number,
-                'address': user_request.address,
-                'valid_id_type': user_request.valid_id_type,
-                'valid_id_number': user_request.valid_id_number,
+                'email': user_request.email,
+                'country': user_request.country,
+                'state': user_request.state,
+                'unit': user_request.unit,
+                'club': user_request.club,
                 'status': user_request.status,
                 'created_at': user_request.created_at,
             }
@@ -327,12 +301,14 @@ class CreateUserRequestView(generics.CreateAPIView):
             )
             
         except ValueError as e:
+
             print(e)
             return bad_request_response(
                 message='Invalid request data'
             )
         
         except Exception as e:
+            print(e)
             return internal_server_error_response(
                 message= 'An error occurred while processing your request'
             )
@@ -483,6 +459,62 @@ class AdminUpdateRequestStatusView(generics.UpdateAPIView):
                 'message': 'Invalid status'
             }, status=status.HTTP_400_BAD_REQUEST)
         
+        # Check if status is being changed to 'approved' and create user profile
+        if new_status == 'approved' and user_request.status != 'approved':
+            # Check if email is unique across all users
+            if user_request.email and User.objects.filter(email=user_request.email).exists():
+                return Response({
+                    'success': False,
+                    'message': 'A user with this email already exists. Cannot approve request.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create user profile with default password
+            try:
+                with transaction.atomic():
+                    # Create the user with minimal essential data
+                    user = User.objects.create_user(
+                        email=user_request.email,
+                        password='member12345',
+                        first_name=user_request.first_name,
+                        last_name=user_request.last_name,
+                        is_admin=False,
+                        is_active=True
+                    )
+                    
+                    # Link the UserRequest to the created user
+                    user.user_request = user_request
+                    user.save()
+                    user_request.status = new_status
+                    user_request.review_notes = review_notes
+                    user_request.reviewed_by = request.user
+                    user_request.reviewed_at = timezone.now()
+                    user_request.save()
+                    
+                    return success_response(
+                        data={
+                            'id': str(user_request.id),
+                            'status': user_request.status,
+                            'reviewed_by': request.user.email,
+                            'reviewed_at': user_request.reviewed_at,
+                            'user_created': True,
+                            'user_id': str(user.id),
+                            'user_email': user.email,
+                        },
+                        message='Request approved successfully and user profile created with default password'
+                    )
+                    
+            except IntegrityError as e:
+                return Response({
+                    'success': False,
+                    'message': 'Failed to create user profile. Email may already exist.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response({
+                    'success': False,
+                    'message': f'Error creating user profile: {str(e)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # For other status changes, just update the request
         user_request.status = new_status
         user_request.review_notes = review_notes
         user_request.reviewed_by = request.user
