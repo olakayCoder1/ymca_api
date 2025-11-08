@@ -33,3 +33,25 @@ class UpdateAttachment(models.Model):
     file = models.FileField(upload_to='attachments/')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class StaffMember(models.Model):
+    CATEGORY_CHOICES = (
+        ('principal_officer', 'Principal Officer'),
+        ('management_staff', 'Management Staff'),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=200)
+    position = models.CharField(max_length=200)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    image = models.ImageField(upload_to='profiles/', null=True, blank=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return f"{self.name} - {self.position}"

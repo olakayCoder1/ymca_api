@@ -1,5 +1,5 @@
 from django.contrib import admin
-from api.models import Post, UpdateAttachment
+from api.models import Post, UpdateAttachment, StaffMember
 
 
 class UpdateAttachmentInline(admin.TabularInline):
@@ -18,3 +18,11 @@ class PostAdmin(admin.ModelAdmin):
     ordering = ('-created_at',)
 
     inlines = [UpdateAttachmentInline]  # Attach the inline admin here
+
+
+@admin.register(StaffMember)
+class StaffMemberAdmin(admin.ModelAdmin):
+    list_display = ('name', 'position', 'category', 'order', 'created_at')
+    list_filter = ('category',)
+    search_fields = ('name', 'position')
+    ordering = ('category', 'order')

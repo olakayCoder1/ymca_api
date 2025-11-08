@@ -9,6 +9,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 from .views import post as post_view
+from api.views.staff import PrincipalOfficersListView, ManagementStaffListView
 
 # Create a router for ViewSets
 router = DefaultRouter()
@@ -60,4 +61,8 @@ urlpatterns = [
     
     # Subscription endpoints
     path('subscriptions/', include('subscription.urls')),
+
+    # Staff endpoints
+    path('staff/principal-officers/', PrincipalOfficersListView.as_view(), name='PrincipalOfficersListView'),
+    path('staff/management-staff/', ManagementStaffListView.as_view(), name='ManagementStaffListView'),
 ]
