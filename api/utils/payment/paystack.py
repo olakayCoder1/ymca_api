@@ -11,6 +11,18 @@ class Paystack:
     """
 
     @staticmethod
+    def next_may_31(reference_date: datetime.date | None = None) -> datetime.date:
+        """Return May 31st of the year following the given reference date.
+
+        If no reference date is provided, uses today's date.
+        This enforces the policy: ID cards expire May 31st of the following year
+        after the payment date.
+        """
+        if reference_date is None:
+            reference_date = datetime.date.today()
+        return datetime.date(reference_date.year + 1, 5, 31)
+
+    @staticmethod
     def get_header():
         headers = {
             "Authorization": f"Bearer sk_test_f2c4c12c87df60bc178d3be7a19ba4a975d17527",
@@ -161,8 +173,8 @@ class Paystack:
                             id_card.is_active =True
                             id_card.first_time =False
                             id_card.expired = False
-                            # let expired at 30 days from today
-                            id_card.expired_at = datetime.date.today() + datetime.timedelta(days=30)
+                            # Expire on May 31st of the following year from payment date
+                            id_card.expired_at = Paystack.next_may_31()
                             id_card.save()
                             transaction.save()
                             return success_response(
@@ -254,8 +266,8 @@ class Paystack:
                             id_card, created = IDCard.objects.get_or_create(user=transaction.user)
                             id_card.is_active =True
                             id_card.expired = False
-                            # let expired at 30 days from today
-                            id_card.expired_at = datetime.date.today() + datetime.timedelta(days=30)
+                            # Expire on May 31st of the following year from payment date
+                            id_card.expired_at = Paystack.next_may_31()
                             id_card.save()
                             transaction.save()
                             return success_response(
