@@ -9,12 +9,13 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 from .views import post as post_view
-from api.views.staff import PrincipalOfficersListView, ManagementStaffListView
+from api.views.staff import PrincipalOfficersListView, ManagementStaffListView, StaffMemberViewSet
 
 # Create a router for ViewSets
 router = DefaultRouter()
 router.register(r'posts', post_view.PostViewSet, basename='posts')
 router.register(r'attachments', post_view.UpdateAttachmentViewSet, basename='attachments')
+router.register(r'staff', StaffMemberViewSet, basename='staff')
 
 
 

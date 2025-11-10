@@ -4,7 +4,7 @@ from api.models import StaffMember
 
 
 class StaffMemberSerializer(serializers.ModelSerializer):
-    image = serializers.ImageField(read_only=True)
+    image = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = StaffMember
