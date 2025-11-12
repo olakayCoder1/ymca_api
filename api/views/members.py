@@ -223,7 +223,7 @@ class AdminAddMembersView(generics.GenericAPIView):
     def get(self, request):
         members = self.get_queryset().order_by('-created_at')
         serializer = UserSerializer(members, many=True, context={'request': request})
-        return paginate_success_response(request, serializer.data, int(request.GET.get('page_size', 10)))
+        return paginate_success_response(request, serializer.data, int(request.GET.get('page_size', 100)))
     
 
 
@@ -406,7 +406,7 @@ class AdminUserRequestListView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         members = self.get_queryset()
         serializer = self.serializer_class(members, many=True, context={'request': request})
-        return paginate_success_response(request, serializer.data, int(request.GET.get('page_size', 10)))
+        return paginate_success_response(request, serializer.data, int(request.GET.get('page_size', 100)))
 
 
 
