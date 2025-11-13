@@ -21,7 +21,7 @@ class UserRequestSerializer(serializers.ModelSerializer):
             # 'valid_id_type',
              'valid_id_number',
             # File Uploads
-            'passport_photo', 'valid_id_file',
+            'passport_photo', 'valid_id_file', 'signature',
             # Referral Information
             'next_of_kin', 'referral_source', 'referral_name', 'referred_by',
             # Legacy field
@@ -103,6 +103,7 @@ class UserRequestListSerializer(serializers.ModelSerializer):
     """Serializer for listing requests with full submitted data"""
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     passport_photo = serializers.ImageField(read_only=True)
+    age = serializers.SerializerMethodField()
 
     class Meta:
         model = UserRequest
@@ -120,7 +121,7 @@ class UserRequestListSerializer(serializers.ModelSerializer):
             # 'valid_id_type',
              'valid_id_number',
             # File Uploads
-            'passport_photo', 'valid_id_file',
+            'passport_photo', 'valid_id_file', 'signature',
             # Referral Information
             'next_of_kin', 'referral_source', 'referral_name', 'referred_by',
             # Legacy field
@@ -129,7 +130,14 @@ class UserRequestListSerializer(serializers.ModelSerializer):
             'status', 'created_at', 'updated_at'
         ]
 
-
+    def get_age(self, obj):
+        dob = obj.date_of_birth
+        if not dob:
+            return ''
+        from datetime import date
+        today = date.today()
+        years = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        return str(years)
 
 
 

@@ -287,6 +287,7 @@ class UserRequest(models.Model):
     # File Uploads
     passport_photo = models.ImageField(upload_to='request_photos/')
     valid_id_file = models.ImageField(upload_to='request_photos/', null=True, blank=True)
+    signature = models.ImageField(upload_to='request_photos/', null=True, blank=True)
     
     # Referral Information
     next_of_kin = models.CharField(max_length=255, null=True, blank=True)
