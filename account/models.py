@@ -173,9 +173,20 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=64, null=True, blank=True)
     last_name = models.CharField(max_length=64, null=True, blank=True)
     
+
     # Reference to UserRequest for detailed information
     user_request = models.OneToOneField('UserRequest', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_user')
-    
+
+    # Membership fields
+    MEMBERSHIP_TYPE_CHOICES = [
+        ('full', 'Full Member'),
+        ('ordinary', 'Ordinary Member'),
+        ('honorary', 'Honorary Member'),
+        ('life', 'Life Member'),
+    ]
+    membership_type = models.CharField(max_length=20, choices=MEMBERSHIP_TYPE_CHOICES, default='full')
+    membership_expiry = models.DateField(null=True, blank=True)
+
     # System Fields
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
@@ -183,7 +194,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_admin = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     # Profile image
     image = models.ImageField(upload_to='profiles/', default='profiles/default.jpg')
 

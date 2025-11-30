@@ -24,7 +24,7 @@ class SubscriptionPlan(models.Model):
 
 
 class MembershipSubscription(models.Model):
-    """Model for user membership subscriptions with July 3rd expiration logic"""
+    """Model for user membership subscriptions with May 31st expiration logic"""
     
     STATUS_CHOICES = [
         ('active', 'Active'),
@@ -75,9 +75,9 @@ class MembershipSubscription(models.Model):
         return f"{self.user.get_full_name()} - {self.plan.name} ({self.status})"
 
     def save(self, *args, **kwargs):
-        """Override save to implement July 3rd expiration logic"""
+        """Override save to implement May 31st expiration logic"""
         if not self.end_date and self.start_date:
-            self.end_date = self.calculate_july_3rd_expiration(self.start_date)
+            self.end_date = self.calculate_may_31st_expiration(self.start_date)
         
         # Auto-update status based on dates
         if self.status == 'active':
@@ -87,21 +87,21 @@ class MembershipSubscription(models.Model):
         super().save(*args, **kwargs)
 
     @staticmethod
-    def calculate_july_3rd_expiration(start_date):
+    def calculate_may_31st_expiration(start_date):
         """
-        Calculate expiration date as July 3rd of the next year.
-        If subscription starts after July 3rd, it expires July 3rd of the following year.
-        If subscription starts before or on July 3rd, it expires July 3rd of the same year.
+        Calculate expiration date as May 31st of the next year.
+        If subscription starts after May 31st, it expires May 31st of the following year.
+        If subscription starts before or on May 31st, it expires May 31st of the same year.
         """
         current_year = start_date.year
-        july_3rd_current_year = date(current_year, 7, 3)
+        may_31st_current_year = date(current_year, 5, 31)
         
-        if start_date <= july_3rd_current_year:
-            # If subscribing before or on July 3rd, expires this year's July 3rd
-            return july_3rd_current_year
+        if start_date <= may_31st_current_year:
+            # If subscribing before or on May 31st, expires this year's May 31st
+            return may_31st_current_year
         else:
-            # If subscribing after July 3rd, expires next year's July 3rd
-            return date(current_year + 1, 7, 3)
+            # If subscribing after May 31st, expires next year's May 31st
+            return date(current_year + 1, 5, 31)
 
     def activate(self):
         """Activate the subscription"""
