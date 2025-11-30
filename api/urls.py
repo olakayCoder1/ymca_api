@@ -1,4 +1,8 @@
 
+from api.views.bulk_status import BulkStatusUpdateView
+
+from api.views.bulk_membership import BulkMembershipTypeUpdateView
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from account import views as account_views
@@ -66,4 +70,7 @@ urlpatterns = [
     # Staff endpoints
     path('staff/principal-officers/', PrincipalOfficersListView.as_view(), name='PrincipalOfficersListView'),
     path('staff/management-staff/', ManagementStaffListView.as_view(), name='ManagementStaffListView'),
+
+    path('admin/members/bulk-update-membership-type/', BulkMembershipTypeUpdateView.as_view(), name='bulk-membership-type-update'),
+    path('admin/members/bulk-update-status/', BulkStatusUpdateView.as_view(), name='bulk-status-update'),
 ]
