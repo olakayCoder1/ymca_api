@@ -236,10 +236,28 @@ class IDCard(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-    # add a function to auto generate id_number
+    # add a function to auto generate id_number based on user's age
     def save(self, *args, **kwargs):
         if not self.id_number:
-            self.id_number = 'NTST{}'.format(str(random.randint(123456789000, 9876543210000)))
+            # Get user's age from date_of_birth if available
+            age = None
+            if self.user.user_request and self.user.user_request.date_of_birth:
+                from datetime import date
+                dob = self.user.user_request.date_of_birth
+                today = date.today()
+                age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+            
+            # Determine prefix based on age
+            # LYA for 31 years and above, LYY for 1-30 years
+            if age is not None and age >= 31:
+                prefix = 'LYA'
+            else:
+                prefix = 'LYY'  # Default to LYY if age is unknown or 1-30
+            
+            # Generate 7-digit random number
+            random_digits = str(random.randint(1000000, 9999999))
+            self.id_number = f'{prefix}{random_digits}'
+        
         super().save(*args, **kwargs)
 
 
