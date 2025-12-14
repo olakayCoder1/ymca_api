@@ -45,7 +45,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User 
-        fields = ['id', 'email', 'first_name', 'last_name', 'image', 'card','role', 'user_request', 'password', 'created_at', 'is_active']
+        fields = ['id', 'email', 'first_name', 'last_name', 'image', 'card','role', 'user_request','membership_type', 'password', 'created_at', 'is_active']
         extra_kwargs = {'password': {'write_only': True}}
 
     def get_card(self, obj: User):

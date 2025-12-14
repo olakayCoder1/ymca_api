@@ -63,6 +63,13 @@ class UserRequestSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Unit is required")
         return value.strip()
     
+    def validate_address(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Address is required")
+        if len(value.strip()) < 10:
+            raise serializers.ValidationError("Please provide a complete address (minimum 10 characters)")
+        return value.strip()
+    
     def validate_passport_photo(self, value):
         if not value:
             raise serializers.ValidationError("Passport photo is required")
