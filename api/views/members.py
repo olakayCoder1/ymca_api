@@ -488,7 +488,19 @@ class AdminUpdateRequestStatusView(generics.UpdateAPIView):
                     user_request.review_notes = review_notes
                     user_request.reviewed_by = request.user
                     user_request.reviewed_at = timezone.now()
-                    user_request.save()
+                    user_request.save() 
+
+
+                    # get user ID card
+                    try:
+                        user_id_card, _ = IDCard.objects.get_or_create(user=user)
+                        user_id_card.signature = user_request.signature
+                        user_id_card.save()
+                    except:pass
+                    try:
+                        user.image = user_request.passport_photo
+                        user.save()
+                    except:pass
                     
                     return success_response(
                         data={
